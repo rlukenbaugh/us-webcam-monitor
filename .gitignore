@@ -1,0 +1,12 @@
+/node_modules
+/.next
+/out
+/dist
+/.vercel
+*.log
+*.sqlite
+*.db
+.env
+.env.local
+.prisma
+release-notes.local.md

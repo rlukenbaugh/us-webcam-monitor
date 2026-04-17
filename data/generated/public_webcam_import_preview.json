@@ -1,0 +1,84 @@
+[
+  {
+    "row": {
+      "title": "Barcelona Beach Live Cam",
+      "region_hint": "barcelona, catalonia",
+      "page_url": "https://example.com/barcelona-webcam",
+      "embed_urls": "https://www.youtube.com/embed/abc123 | https://example.com/frame.jpg",
+      "source_site": "example.com"
+    },
+    "skippedReason": null,
+    "candidate": {
+      "title": "Barcelona Beach Live Cam",
+      "sourceUrl": "https://example.com/barcelona-webcam",
+      "embedUrl": "https://www.youtube.com/embed/abc123",
+      "imageUrl": "https://example.com/frame.jpg",
+      "latitude": 41.3851,
+      "longitude": 2.1734,
+      "city": "Barcelona",
+      "stateCode": null,
+      "category": "BEACH",
+      "notes": "Imported from public webcam crawler CSV. Region hint: barcelona, catalonia Source site: example.com Embeds found: 2",
+      "raw": {
+        "importedFrom": "public_webcam_crawler_csv",
+        "row": {
+          "title": "Barcelona Beach Live Cam",
+          "region_hint": "barcelona, catalonia",
+          "page_url": "https://example.com/barcelona-webcam",
+          "embed_urls": "https://www.youtube.com/embed/abc123 | https://example.com/frame.jpg",
+          "source_site": "example.com"
+        },
+        "inferredCategory": "BEACH",
+        "inferredLocation": {
+          "latitude": 41.3851,
+          "longitude": 2.1734,
+          "city": "Barcelona",
+          "stateCode": null,
+          "countryCode": "ES"
+        },
+        "importedAt": "2026-03-14T15:33:47.492Z"
+      }
+    }
+  },
+  {
+    "row": {
+      "title": "Las Canteras Surf Cam",
+      "region_hint": "gran canaria, las palmas",
+      "page_url": "https://example.com/las-canteras",
+      "embed_urls": "https://example.com/live/master.m3u8",
+      "source_site": "example.com"
+    },
+    "skippedReason": null,
+    "candidate": {
+      "title": "Las Canteras Surf Cam",
+      "sourceUrl": "https://example.com/las-canteras",
+      "embedUrl": "https://example.com/live/master.m3u8",
+      "imageUrl": null,
+      "latitude": 28.1235,
+      "longitude": -15.4363,
+      "city": "Las Palmas de Gran Canaria",
+      "stateCode": null,
+      "category": "BEACH",
+      "notes": "Imported from public webcam crawler CSV. Region hint: gran canaria, las palmas Source site: example.com Embeds found: 1",
+      "raw": {
+        "importedFrom": "public_webcam_crawler_csv",
+        "row": {
+          "title": "Las Canteras Surf Cam",
+          "region_hint": "gran canaria, las palmas",
+          "page_url": "https://example.com/las-canteras",
+          "embed_urls": "https://example.com/live/master.m3u8",
+          "source_site": "example.com"
+        },
+        "inferredCategory": "BEACH",
+        "inferredLocation": {
+          "latitude": 28.1235,
+          "longitude": -15.4363,
+          "city": "Las Palmas de Gran Canaria",
+          "stateCode": null,
+          "countryCode": "ES"
+        },
+        "importedAt": "2026-03-14T15:33:47.492Z"
+      }
+    }
+  }
+]

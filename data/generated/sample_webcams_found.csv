@@ -1,0 +1,4 @@
+source_page,candidate_url,ok,status_code,content_type,stream_type
+https://www.dot.state.mn.us/cameras/,https://cameras.dot.state.mn.us/cam001/video.mjpg,true,200,multipart/x-mixed-replace,MJPEG
+https://www.nps.gov/subjects/webcams/index.htm,https://www.nps.gov/yose/learn/photosmultimedia/webcams.htm,true,200,text/html,EMBED
+https://www.weatherbug.com/weather-camera/,https://example.com/unknown/snapshot.jpg,false,404,image/jpeg,IMAGE

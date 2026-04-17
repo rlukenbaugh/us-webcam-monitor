@@ -1,0 +1,128 @@
+{
+  "name": "us-webcam-monitor",
+  "version": "0.1.0",
+  "description": "Windows desktop monitor for discovering, reviewing, and operating public U.S. webcam feeds.",
+  "author": "R. Lukenbaugh",
+  "homepage": "https://github.com/rlukenbaugh/us-webcam-monitor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rlukenbaugh/us-webcam-monitor.git"
+  },
+  "license": "MIT",
+  "private": true,
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:web": "prisma generate && npm run db:prepare:sqlite && next build",
+    "build:win": "npm run build:web && electron-builder --win nsis",
+    "publish:win": "npm run build:win",
+    "start": "next start",
+    "start:desktop": "electron .",
+    "lint": "eslint . --max-warnings=0",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma db push",
+    "prisma:seed": "prisma db seed",
+    "db:push": "prisma db push",
+    "db:prepare:sqlite": "node scripts/prepare-sqlite-db.cjs",
+    "import:webcam-finder": "tsx scripts/import-webcam-finder-csv.ts",
+    "import:public-webcam-csv": "tsx scripts/import-public-webcam-csv.ts",
+    "import:seed-batches": "tsx scripts/import-seed-batches.ts",
+    "check:images": "tsx scripts/check-camera-images.ts",
+    "discover:daily": "node scripts/daily-webcam-discovery.cjs",
+    "refresh:daily": "node scripts/daily-refresh.cjs"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "@tanstack/react-query": "^5.69.0",
+    "clsx": "^2.1.1",
+    "hls.js": "^1.6.15",
+    "maplibre-gl": "^5.3.0",
+    "next": "^15.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-map-gl": "^8.0.4",
+    "slugify": "^1.6.6",
+    "supercluster": "^8.0.1",
+    "zod": "^3.24.2",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.21",
+    "electron": "^36.0.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^9.25.1",
+    "eslint-config-next": "^15.2.0",
+    "postcss": "^8.5.3",
+    "prisma": "^6.5.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  },
+  "build": {
+    "appId": "com.luken.uswebcammonitor",
+    "productName": "US Webcam Monitor",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "prisma/dev.db",
+        "to": "database/dev.db"
+      },
+      {
+        "from": ".next/standalone",
+        "to": "app",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".next/static",
+        "to": "app/.next/static",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "public",
+        "to": "app/public",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "data/generated/webcam_seed_batches",
+        "to": "seed-batches",
+        "filter": [
+          "**/*.json"
+        ]
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "us-webcam-monitor-${version}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

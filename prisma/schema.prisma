@@ -1,0 +1,320 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  DOT
+  WEATHER
+  TOURISM
+  MANUAL
+}
+
+enum CameraCategory {
+  TRAFFIC
+  WEATHER
+  AVIATION
+  BEACH
+  TOURISM
+  DOWNTOWN
+  MOUNTAIN
+  PARK
+  HARBOR
+  SKI
+  OTHER
+}
+
+enum StreamType {
+  HLS
+  MJPEG
+  JPEG
+  IFRAME
+  YOUTUBE
+  UNKNOWN
+}
+
+enum CameraStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
+enum SourceStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+enum RunStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+  RUNNING
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+enum AuditActorType {
+  SYSTEM
+  ADMIN
+  USER
+  ANONYMOUS
+}
+
+model Camera {
+  id              String         @id @default(cuid())
+  externalId      String?
+  sourceId        String
+  sourceType      SourceType
+  name            String
+  slug            String         @unique
+  category        CameraCategory
+  description     String?
+  countryCode     String         @default("US")
+  stateCode       String?
+  city            String?
+  latitude        Float
+  longitude       Float
+  pageUrl         String?
+  providerUrl     String?
+  status          CameraStatus   @default(UNKNOWN)
+  lastCheckedAt   DateTime?
+  lastSuccessAt   DateTime?
+  confidenceScore Float          @default(0.4)
+  raw             Json?
+  isEnabled       Boolean        @default(true)
+  regionId        String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  source   Source         @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  region   Region?        @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  streams  CameraStream[]
+  images   CameraImage[]
+  checks   CameraCheck[]
+  tags     CameraTag[]
+  aliases  CameraAlias[]
+  favorites Favorite[]
+
+  @@index([sourceId])
+  @@index([sourceType, category])
+  @@index([stateCode, city])
+  @@index([latitude, longitude])
+  @@index([status, isEnabled])
+  @@index([lastCheckedAt])
+}
+
+model CameraStream {
+  id          String     @id @default(cuid())
+  cameraId    String
+  type        StreamType @default(UNKNOWN)
+  url         String
+  isPrimary   Boolean    @default(true)
+  isEmbeddable Boolean   @default(false)
+  status      CameraStatus @default(UNKNOWN)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@unique([cameraId, url])
+  @@index([type])
+  @@index([status])
+}
+
+model CameraImage {
+  id          String       @id @default(cuid())
+  cameraId    String
+  url         String
+  isPrimary   Boolean      @default(true)
+  lastFetchedAt DateTime?
+  httpStatus  Int?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@unique([cameraId, url])
+}
+
+model Source {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  name        String
+  type        SourceType
+  baseUrl     String?
+  attribution String?
+  status      SourceStatus @default(ACTIVE)
+  isEnabled   Boolean     @default(true)
+  syncCron    String?
+  lastRunAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  cameras     Camera[]
+  runs        SourceRun[]
+  submissions Submission[]
+
+  @@index([type, status])
+}
+
+model SourceRun {
+  id              String    @id @default(cuid())
+  sourceId        String
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  status          RunStatus @default(RUNNING)
+  fetchedCount    Int       @default(0)
+  normalizedCount Int       @default(0)
+  insertedCount   Int       @default(0)
+  updatedCount    Int       @default(0)
+  failedCount     Int       @default(0)
+  duplicateCount  Int       @default(0)
+  errorSummary    String?
+  errors          Json?
+  raw             Json?
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId, startedAt])
+  @@index([status])
+}
+
+model CameraCheck {
+  id            String   @id @default(cuid())
+  cameraId      String
+  checkedAt     DateTime @default(now())
+  targetUrl     String?
+  httpStatus    Int?
+  contentType   String?
+  responseMs    Int?
+  success       Boolean
+  failureReason String?
+  uptimePercent Float?
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@index([cameraId, checkedAt])
+  @@index([success])
+}
+
+model Tag {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  slug      String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  cameras CameraTag[]
+}
+
+model CameraTag {
+  cameraId String
+  tagId    String
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([cameraId, tagId])
+  @@index([tagId])
+}
+
+model Submission {
+  id              String           @id @default(cuid())
+  sourceId        String?
+  title           String
+  sourceUrl       String
+  embedUrl        String?
+  imageUrl        String?
+  latitude        Float
+  longitude       Float
+  stateCode       String?
+  city            String?
+  category        CameraCategory
+  notes           String?
+  contactEmail    String?
+  status          SubmissionStatus @default(PENDING)
+  moderationNotes String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  raw             Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  source Source? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
+
+model Favorite {
+  id          String   @id @default(cuid())
+  anonId      String?
+  userId      String?
+  cameraId    String?
+  regionId    String?
+  savedSearch Json?
+  createdAt   DateTime @default(now())
+
+  camera Camera? @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  region Region? @relation(fields: [regionId], references: [id], onDelete: SetNull)
+
+  @@index([anonId])
+  @@index([userId])
+  @@index([cameraId])
+}
+
+model Region {
+  id          String    @id @default(cuid())
+  countryCode String    @default("US")
+  stateCode   String
+  city        String?
+  name        String
+  slug        String    @unique
+  bounds      Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  cameras   Camera[]
+  favorites Favorite[]
+
+  @@index([stateCode, city])
+}
+
+model CameraAlias {
+  id             String   @id @default(cuid())
+  cameraId       String
+  alias          String
+  normalizedAlias String
+  createdAt      DateTime @default(now())
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@unique([cameraId, normalizedAlias])
+  @@index([normalizedAlias])
+}
+
+model AuditLog {
+  id         String         @id @default(cuid())
+  actorType  AuditActorType @default(SYSTEM)
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime       @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

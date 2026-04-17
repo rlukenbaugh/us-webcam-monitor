@@ -1,0 +1,129 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: us-webcam-monitor-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Detect signing configuration
+        id: signing
+        shell: pwsh
+        run: |
+          if (-not $env:CSC_LINK) {
+            "enabled=false" >> $env:GITHUB_OUTPUT
+            Write-Warning "CSC_LINK is not configured. The release will be built unsigned."
+            exit 0
+          }
+
+          if (-not $env:CSC_KEY_PASSWORD) {
+            "enabled=false" >> $env:GITHUB_OUTPUT
+            Write-Warning "CSC_KEY_PASSWORD is not configured. The release will be built unsigned."
+            exit 0
+          }
+
+          "enabled=true" >> $env:GITHUB_OUTPUT
+          Write-Host "Code signing secrets detected. The release will be signed if signing is configured in electron-builder."
+
+      - name: Validate tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $expectedTag = "v$version"
+          if ($expectedTag -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match package.json version $version."
+          }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build Windows release
+        run: npm run publish:win
+
+      - name: Smoke test unpacked desktop app
+        shell: pwsh
+        run: |
+          $exePath = Join-Path $PWD "dist\win-unpacked\US Webcam Monitor.exe"
+          $process = Start-Process -FilePath $exePath -PassThru
+          Start-Sleep -Seconds 8
+
+          if ($process.HasExited) {
+            throw "Smoke test failed. The packaged app exited with code $($process.ExitCode)."
+          }
+
+          Stop-Process -Id $process.Id -Force
+
+      - name: Package portable asset
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $zipPath = Join-Path $PWD "dist\US-Webcam-Monitor-Portable-$version-win-x64.zip"
+          if (Test-Path $zipPath) {
+            Remove-Item $zipPath -Force
+          }
+          Compress-Archive -Path "dist\win-unpacked\*" -DestinationPath $zipPath
+
+      - name: Generate release notes
+        shell: pwsh
+        run: node scripts/render-release-notes.mjs --out release-notes.md
+
+      - name: Create or update GitHub release
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $tag = "v$version"
+          $installer = "dist\us-webcam-monitor-$version-setup.exe"
+          $portable = "dist\US-Webcam-Monitor-Portable-$version-win-x64.zip"
+          $blockmap = "dist\us-webcam-monitor-$version-setup.exe.blockmap"
+          $latest = "dist\latest.yml"
+
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $installer $portable $blockmap $latest `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "US Webcam Monitor v$version" `
+              --notes-file release-notes.md
+          }
+          else {
+            gh release upload $tag $installer $portable $blockmap $latest --repo $env:GITHUB_REPOSITORY --clobber
+            gh release edit $tag `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "US Webcam Monitor v$version" `
+              --notes-file release-notes.md
+          }
+
+      - name: Note unsigned release fallback
+        if: steps.signing.outputs.enabled != 'true'
+        shell: pwsh
+        run: |
+          Write-Host "Release assets were built unsigned because CSC_LINK / CSC_KEY_PASSWORD are not configured."
