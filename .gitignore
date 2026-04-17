@@ -10,3 +10,6 @@
 .env.local
 .prisma
 release-notes.local.md
+*.pyc
+__pycache__/
+data/generated/*import_preview.json
